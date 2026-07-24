@@ -10,6 +10,12 @@ class DiceRoller:
         self.allowed_chars = set("0123456789+-*/(). ")
 
     def parse_expression(self, expression):
+        expression = expression.strip()
+        
+        # IDEIA 2: Se começar com 'r' ou 'R', removemos a letra para a matemática funcionar pura
+        if expression.lower().startswith('r'):
+            expression = expression[1:].strip()
+            
         math_expr = ""
         visual_expr = ""
         last_end = 0
@@ -46,10 +52,9 @@ class DiceRoller:
                 elif r == 1:
                     classes.append("crit-fail")
                     
-                # Se tiver classes, envelopa o número no HTML, senão, mostra puro
                 if classes:
                     class_str = " ".join(classes)
-                    fmt_rolls.append(f"{r}")
+                    fmt_rolls.append(f"<span class='{class_str}'>{r}</span>")
                 else:
                     fmt_rolls.append(str(r))
                 
@@ -105,6 +110,9 @@ class DiceRoller:
             base_expr = text
 
         output = []
+        soma_total = 0
+        teve_erro = False
+
         for _ in range(repeticoes):
             sub_expressions = base_expr.split(';')
             line_results = []
@@ -113,25 +121,40 @@ class DiceRoller:
                 if not sub_expr.strip(): continue
                 result, visual = self.parse_expression(sub_expr)
                 
-                # Usa a classe CSS para o fundo da caixa de resultado
                 caixa_resultado = f"<span class='result-box'> {result} </span>"
                 line_results.append(f"{caixa_resultado} ⟵ {visual.strip()}")
+
+                # Acumula o valor para a soma total (se não for uma mensagem de erro)
+                if isinstance(result, (int, float)):
+                    soma_total += result
+                else:
+                    teve_erro = True
             
-            # ATUALIZAÇÃO AQUI: Forçamos o comportamento de bloco e damos 10px de margem embaixo
             linha_montada = "<span class='separator'>|</span>".join(line_results)
             output.append(f"<div style='display: block; margin-bottom: 10px;'>{linha_montada}</div>")
             
+        # IDEIA 1: Se jogou mais de 1 dado, cria o botão de Soma Total
+        if repeticoes > 1 and not teve_erro:
+            botao_soma = f"""
+            <details style="margin-top: 5px; cursor: pointer; background: #1e1e1e; padding: 10px; border-radius: 6px; border: 1px solid #444; width: fit-content;">
+                <summary style="color: #4ade80; font-weight: bold; outline: none; user-select: none;">
+                    Somar as {repeticoes} rolagens
+                </summary>
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #444; font-size: 16px;">
+                    Soma Total: <span class='result-box' style='background-color: #22c55e; color: #000;'>{soma_total}</span>
+                </div>
+            </details>
+            """
+            output.append(botao_soma)
+            
         return "".join(output)
 
-# Inicia o robô
 bot = DiceRoller()
 
-# Rota principal que carrega a página HTML
 @app.route('/')
 def home():
     return render_template('index.html')
 
-# Rota API onde o HTML envia o texto e o Python devolve o resultado
 @app.route('/roll', methods=['POST'])
 def process_roll():
     dados = request.get_json()
@@ -142,4 +165,4 @@ def process_roll():
     return jsonify({'html': resultado_html})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True) 

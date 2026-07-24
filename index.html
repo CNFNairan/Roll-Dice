@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rolador Python + Flask</title>
+    <style>
+      body {
+        background-color: #121212;
+        color: #e0e0e0;
+        font-family: "Consolas", monospace;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .container {
+        width: 100%;
+        max-width: 800px;
+      }
+      .input-area {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        background: #1e1e1e;
+        padding: 15px;
+        border-radius: 8px;
+      }
+      input[type="text"] {
+        flex: 1;
+        padding: 10px;
+        background-color: #2d2d2d;
+        border: 1px solid #444;
+        color: white;
+        font-size: 16px;
+        border-radius: 4px;
+      }
+      button {
+        padding: 10px 20px;
+        background-color: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #2563eb;
+      }
+      .log-area {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .roll-entry {
+        background-color: #1e1e1e;
+        padding: 12px;
+        border-radius: 6px;
+        border-left: 4px solid #444;
+        line-height: 1.6;
+      }
+
+      /* Classes CSS que o Python vai chamar */
+      .result-box {
+        background-color: #4b5563;
+        color: #ffffff;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+      .crit-success {
+        color: #4ade80;
+        font-weight: bold;
+      }
+      .crit-fail {
+        color: #f87171;
+        font-weight: bold;
+      }
+      .dropped {
+        text-decoration: line-through;
+        opacity: 0.6;
+      }
+      .separator {
+        color: #666;
+        margin: 0 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>🎲 Rolador de Dados (Python Backend)</h2>
+      <div class="input-area">
+        <input
+          type="text"
+          id="diceInput"
+          placeholder="Ex: 4d7 + 20"
+          autocomplete="off"
+        />
+        <button onclick="enviarParaPython()">Rolar</button>
+      </div>
+      <div class="log-area" id="logArea"></div>
+    </div>
+
+    <script>
+      const inputElement = document.getElementById("diceInput");
+      const logArea = document.getElementById("logArea");
+
+      // Função que envia o dado para o arquivo app.py
+      async function enviarParaPython() {
+        const texto = inputElement.value;
+        if (!texto.trim()) return;
+
+        // Faz uma requisição POST para a rota /roll do Flask
+        const resposta = await fetch("/roll", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ expressao: texto }),
+        });
+
+        const dados = await resposta.json();
+
+        // Cria o bloco na tela com o HTML que o Python devolveu
+        const entry = document.createElement("div");
+        entry.className = "roll-entry";
+        entry.innerHTML = dados.html;
+        logArea.prepend(entry);
+
+        inputElement.value = "";
+      }
+
+      inputElement.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") enviarParaPython();
+      });
+    </script>
+  </body>
+</html>
