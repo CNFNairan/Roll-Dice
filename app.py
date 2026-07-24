@@ -121,7 +121,7 @@ class DiceRoller:
                 if not sub_expr.strip(): continue
                 result, visual = self.parse_expression(sub_expr)
                 
-                caixa_resultado = f"<span class='result-box'> {result} </span>"
+                caixa_resultado = f"<span class='result-box'>{result}</span>"
                 line_results.append(f"{caixa_resultado} ⟵ {visual.strip()}")
 
                 # Acumula o valor para a soma total (se não for uma mensagem de erro)
