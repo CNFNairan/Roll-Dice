@@ -7,8 +7,10 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'sua_chave_secreta_rpg_123'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Dicionário para controlar quem é o Mestre de cada sala { "nome_da_sala": "socket_id_do_mestre" }
-room_masters = {}
+# --- MEMÓRIA RAM POR SALA ---
+room_masters = {}    # { "sala": "nome_do_mestre" }
+room_combats = {}    # { "sala": { "active": False, "turn_index": 0, "order": [...] } }
+room_histories = {}  # { "sala": [ { "public": ..., "gm_private": ... } ] }
 
 class DiceRoller:
     def __init__(self):
@@ -217,7 +219,17 @@ bot = DiceRoller()
 def home():
     return render_template('index.html')
 
-# --- GERENCIAMENTO DE SESSÕES MULTIPLAYER ---
+def get_combat_data(room):
+    if room not in room_combats:
+        room_combats[room] = {"active": False, "turn_index": 0, "order": []}
+    return room_combats[room]
+
+def get_history_data(room):
+    if room not in room_histories:
+        room_histories[room] = []
+    return room_histories[room]
+
+# --- EVENTOS DE CONEXÃO & HISTÓRICO ---
 
 @socketio.on('join_room')
 def handle_join(data):
@@ -228,42 +240,107 @@ def handle_join(data):
     if not room or not username:
         return
 
+    current_gm = room_masters.get(room)
     is_gm_assigned = False
 
-    # Validação do Mestre Único
     if want_gm:
-        gm_sid = room_masters.get(room)
-        if gm_sid is None:
-            room_masters[room] = request.sid
+        # Se não há Mestre na mesa OU se quem está entrando tem o mesmo nome do Mestre registrado (reconexão pós F5)
+        if current_gm is None or current_gm.lower() == username.lower():
+            room_masters[room] = username
             is_gm_assigned = True
         else:
-            emit('join_error', {'msg': '❌ Já existe um Mestre nesta mesa! Entre como jogador ou escolha outro nome de mesa.'})
+            emit('join_error', {'msg': f'❌ O mestre "{current_gm}" já está registrado nesta mesa! Entre com esse nome para reconectar ou como jogador.'})
             return
+    else:
+        if current_gm and current_gm.lower() == username.lower():
+            is_gm_assigned = True
 
     join_room(room)
     
-    # Confirma a entrada do jogador
     emit('join_success', {
         'is_gm': is_gm_assigned,
         'username': username,
         'room': room
     })
 
+    # RESTAURA HISTÓRICO DE ROLAGENS DO F5 (Apenas para este usuário que acabou de entrar)
+    history = get_history_data(room)
+    filtered_history = []
+    for item in history:
+        if 'gm_private' in item and is_gm_assigned:
+            filtered_history.append(item['gm_private'])
+        else:
+            filtered_history.append(item['public'])
+            
+    emit('load_history', filtered_history)
+
+    # RESTAURA ESTADO DE COMBATE
+    emit('update_combat', get_combat_data(room))
+
     titulo = "👑 MESTRE" if is_gm_assigned else "🎲 Jogador"
     emit('system_message', {
-        'msg': f"🟢 <strong>{username}</strong> ({titulo}) entrou na mesa!"
+        'msg': f"🟢 <strong>{username}</strong> ({titulo}) entrou/reconectou na mesa!"
     }, room=room)
 
-@socketio.on('disconnect')
-def handle_disconnect():
-    # Libera a vaga de Mestre se ele se desconectar
-    for room, gm_sid in list(room_masters.items()):
-        if gm_sid == request.sid:
-            del room_masters[room]
-            emit('system_message', {
-                'msg': '⚠️ O Mestre se desconectou. O posto de Mestre ficou vago.'
-            }, room=room)
-            break
+@socketio.on('leave_gm')
+def handle_leave_gm(data):
+    room = data.get('room', '').strip().lower()
+    username = data.get('username', '').strip()
+    current_gm = room_masters.get(room)
+    
+    if current_gm and current_gm.lower() == username.lower():
+        del room_masters[room]
+        emit('system_message', {'msg': f'👑 O mestre <strong>{username}</strong> liberou o posto de Mestre da sala.'}, room=room)
+        emit('gm_status_changed', {'is_gm': False})
+
+# --- EVENTOS DE ORDEM DE AÇÃO (COMBATE) ---
+
+@socketio.on('update_combat_state')
+def handle_combat_update(data):
+    room = data.get('room', '').strip().lower()
+    username = data.get('username', '').strip()
+    current_gm = room_masters.get(room)
+
+    if not current_gm or current_gm.lower() != username.lower():
+        return # Apenas o Mestre pode alterar a ordem de combate
+
+    combat = get_combat_data(room)
+    action = data.get('action')
+
+    if action == 'toggle_combat':
+        combat['active'] = not combat['active']
+        combat['turn_index'] = 0
+        status_str = "iniciado! ⚔️" if combat['active'] else "encerrado. 🕊️"
+        emit('system_message', {'msg': f"🚨 <strong>Combate {status_str}</strong>"}, room=room)
+
+    elif action == 'add_combatant':
+        nome = data.get('name', '').strip()
+        init_val = int(data.get('init', 0))
+        
+        if nome:
+            combat['order'].append({
+                'name': nome,
+                'init': init_val
+            })
+            # Ordena automaticamente por maior iniciativa
+            combat['order'].sort(key=lambda x: x['init'], reverse=True)
+
+    elif action == 'remove_combatant':
+        idx = data.get('index', -1)
+        if 0 <= idx < len(combat['order']):
+            combat['order'].pop(idx)
+            if combat['turn_index'] >= len(combat['order']):
+                combat['turn_index'] = 0
+
+    elif action == 'next_turn':
+        if combat['order']:
+            combat['turn_index'] = (combat['turn_index'] + 1) % len(combat['order'])
+            atual = combat['order'][combat['turn_index']]
+            emit('system_message', {'msg': f"⏱️ É a vez de <strong>{atual['name']}</strong>!"}, room=room)
+
+    emit('update_combat', combat, room=room)
+
+# --- EVENTO DE ROLAGEM ---
 
 @socketio.on('send_roll')
 def handle_roll(data):
@@ -275,34 +352,60 @@ def handle_roll(data):
     if not expressao or not room:
         return
 
-    # Garante que APENAS o Mestre autêntico consiga rolar oculto
-    is_real_gm = (room_masters.get(room) == request.sid)
+    current_gm = room_masters.get(room)
+    is_real_gm = (current_gm and current_gm.lower() == username.lower())
+    combat = get_combat_data(room)
+
+    # TRAVA DE TURNO: Se combate está ativo e NÃO é o Mestre rolando
+    if combat['active'] and not is_real_gm:
+        if not combat['order']:
+            emit('roll_error', {'msg': '🛑 O combate está ativo, mas a ordem de iniciativa está vazia!'})
+            return
+            
+        personagem_da_vez = combat['order'][combat['turn_index']]
+        
+        if username.lower() != personagem_da_vez['name'].lower():
+            emit('roll_error', {
+                'msg': f"🛑 Aguarde! Não é a sua vez. É o turno de <strong>{personagem_da_vez['name']}</strong>."
+            })
+            return
+
     if is_oculto and not is_real_gm:
         is_oculto = False
 
     resultado_html = bot.roll(expressao)
+    history = get_history_data(room)
 
     if is_oculto:
-        # Mostra o resultado real só para o Mestre
-        emit('receive_roll', {
+        gm_msg = {
             'username': f"👑 {username} (Rolagem Oculta)",
             'html': resultado_html,
             'is_oculto': True
-        }, room=request.sid)
-
-        # Mostra o mistério para os jogadores
-        emit('receive_roll', {
+        }
+        public_msg = {
             'username': f"👑 {username}",
             'html': '<div style="color: #c084fc; font-style: italic;">[Rolou os dados em segredo...]</div>',
             'is_oculto': True
-        }, room=room, include_self=False)
+        }
+
+        history.append({'public': public_msg, 'gm_private': gm_msg})
+
+        emit('receive_roll', gm_msg, room=request.sid)
+        emit('receive_roll', public_msg, room=room, include_self=False)
     else:
         prefixo = "👑 " if is_real_gm else ""
-        emit('receive_roll', {
+        msg = {
             'username': f"{prefixo}{username}",
             'html': resultado_html,
             'is_oculto': False
-        }, room=room)
+        }
+
+        history.append({'public': msg})
+        emit('receive_roll', msg, room=room)
+
+    # Mantém apenas os últimos 50 dados rolando para não carregar demais a memória
+    if len(history) > 50:
+        history.pop(0)
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)

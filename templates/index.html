@@ -11,7 +11,7 @@
         color: #ffffff;
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         margin: 0;
-        padding: 20px;
+        padding: 15px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -22,10 +22,32 @@
         max-width: 650px;
       }
 
+      .header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
       h1 {
-        text-align: center;
         color: #4ade80;
-        margin-bottom: 5px;
+        margin: 0;
+        font-size: 22px;
+      }
+
+      .btn-exit {
+        background: #333;
+        color: #aaa;
+        border: 1px solid #444;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      .btn-exit:hover {
+        background: #444;
+        color: #fff;
       }
 
       #login-card {
@@ -33,7 +55,6 @@
         padding: 20px;
         border-radius: 8px;
         border: 1px solid #333;
-        margin-bottom: 20px;
       }
 
       .form-group {
@@ -47,7 +68,8 @@
         font-size: 14px;
       }
 
-      input[type="text"] {
+      input[type="text"],
+      input[type="number"] {
         width: 100%;
         padding: 10px;
         background: #2a2a2a;
@@ -68,7 +90,6 @@
         font-weight: bold;
         font-size: 16px;
         cursor: pointer;
-        transition: 0.2s;
       }
 
       button:hover {
@@ -79,11 +100,59 @@
         display: none;
       }
 
+      /* FAIXA DA INICIATIVA (CARROSSEL MOBILE) */
+      #initiative-bar {
+        background: #181818;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 12px;
+        display: none;
+      }
+
+      .bar-title {
+        font-size: 12px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .turn-list {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+
+      .turn-chip {
+        background: #282828;
+        border: 1px solid #444;
+        padding: 6px 12px;
+        border-radius: 20px;
+        white-space: nowrap;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .turn-chip.active {
+        background: #15803d;
+        border-color: #4ade80;
+        color: #fff;
+        font-weight: bold;
+        box-shadow: 0 0 10px rgba(74, 222, 128, 0.4);
+      }
+
+      /* LOG DE ROLAGENS */
       #chat-log {
         background: #181818;
         border: 1px solid #333;
         border-radius: 8px;
-        height: 400px;
+        height: 380px;
         overflow-y: auto;
         padding: 15px;
         margin-bottom: 15px;
@@ -112,7 +181,6 @@
       .message-card.oculto .user-header {
         color: #c084fc;
       }
-
       .system-msg {
         text-align: center;
         color: #888;
@@ -143,23 +211,71 @@
         opacity: 0.5;
       }
 
-      .gm-controls {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 8px;
-        background: #281c30;
+      /* PAINEL DO MESTRE */
+      .gm-box {
+        background: #221c28;
         border: 1px solid #a855f7;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 15px;
+      }
+
+      .gm-title {
+        color: #c084fc;
+        font-weight: bold;
+        margin-bottom: 10px;
+        font-size: 15px;
+      }
+
+      .gm-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+
+      .btn-gm {
+        background: #a855f7;
+        color: #fff;
         padding: 8px 12px;
+        font-size: 13px;
+        flex: 1;
+        min-width: 120px;
+        border: none;
         border-radius: 4px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .btn-gm:hover {
+        background: #9333ea;
+      }
+      .btn-subtle {
+        background: #333;
+        color: #aaa;
+        font-weight: normal;
+      }
+      .btn-subtle:hover {
+        background: #444;
+        color: #fff;
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <h1>⚔️ Mesa de RPG Multiplayer</h1>
+      <div class="header-top">
+        <h1>⚔️ Mesa RPG</h1>
+        <button
+          id="btn-change-room"
+          class="btn-exit"
+          style="display: none"
+          onclick="sairDaMesa()"
+        >
+          Trocar de Mesa
+        </button>
+      </div>
 
-      <!-- 1. TELA DE ENTRADA -->
+      <!-- TELA DE LOGIN -->
       <div id="login-card">
         <div class="form-group">
           <label>Seu Nome / Personagem:</label>
@@ -169,10 +285,9 @@
           <label>Nome da Mesa (Sala):</label>
           <input type="text" id="room" placeholder="Ex: campanha-mortal" />
         </div>
-
         <div
           class="form-group"
-          style="display: flex; align-items: center; gap: 8px; margin-top: 10px"
+          style="display: flex; align-items: center; gap: 8px"
         >
           <input
             type="checkbox"
@@ -188,17 +303,31 @@
               font-weight: bold;
             "
           >
-            👑 Entrar como Mestre desta mesa
+            👑 Entrar/Reconectar como Mestre
           </label>
         </div>
-
         <button onclick="entrarNaMesa()">Entrar na Mesa</button>
       </div>
 
-      <!-- 2. PAINEL DE JOGO -->
+      <!-- ÁREA DA MESA -->
       <div id="game-area">
+        <!-- FAIXA DA ORDEM DE INICIATIVA -->
+        <div id="initiative-bar">
+          <div class="bar-title">
+            <span>⚔️ Ordem de Ação</span>
+            <span id="combat-status" style="color: #ef4444"
+              >FORA DE COMBATE</span
+            >
+          </div>
+          <div id="turn-chips" class="turn-list">
+            <!-- Chips dinamicos aqui -->
+          </div>
+        </div>
+
+        <!-- CHAT / LOG DE ROLAGENS -->
         <div id="chat-log"></div>
 
+        <!-- INPUT DE ROLAGEM -->
         <div style="display: flex; gap: 8px">
           <input
             type="text"
@@ -206,23 +335,85 @@
             placeholder="Ex: 1d20+5, 3#1d2 cara, r(15+20)*3"
             onkeypress="if (event.key === 'Enter') enviarRolagem();"
           />
-          <button onclick="enviarRolagem()" style="width: 120px">Rolar</button>
+          <button onclick="enviarRolagem()" style="width: 100px">Rolar</button>
         </div>
 
-        <!-- PAINEL EXCLUSIVO DO MESTRE (Inicia oculto) -->
-        <div id="gm-panel" class="gm-controls" style="display: none">
-          <input type="checkbox" id="oculto-check" style="cursor: pointer" />
-          <label
-            for="oculto-check"
+        <!-- PAINEL EXCLUSIVO DO MESTRE -->
+        <div id="gm-panel" class="gm-box" style="display: none">
+          <div class="gm-title">👑 Painel de Gerenciamento do Mestre</div>
+
+          <div class="gm-actions">
+            <button
+              id="btn-toggle-combat"
+              class="btn-gm"
+              onclick="toggleCombate()"
+            >
+              Iniciar Combate ⚔️
+            </button>
+            <button class="btn-gm" onclick="proximoTurno()">
+              Próximo Turno ⏩
+            </button>
+          </div>
+
+          <div style="display: flex; gap: 6px; margin-bottom: 10px">
+            <input
+              type="text"
+              id="npc-name"
+              placeholder="Nome (Ex: Orc / Player)"
+              style="flex: 2"
+            />
+            <input
+              type="number"
+              id="npc-init"
+              placeholder="Iniciativa"
+              style="flex: 1"
+            />
+            <button
+              class="btn-gm"
+              onclick="adicionarCombatente()"
+              style="width: 70px"
+            >
+              + Add
+            </button>
+          </div>
+
+          <div
             style="
-              margin: 0;
-              cursor: pointer;
-              color: #c084fc;
-              font-weight: bold;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              background: #1a1520;
+              padding: 8px;
+              border-radius: 4px;
             "
           >
-            🔒 Rolar Oculto (Apenas você verá o resultado)
-          </label>
+            <div style="display: flex; align-items: center; gap: 8px">
+              <input
+                type="checkbox"
+                id="oculto-check"
+                style="width: auto; cursor: pointer"
+              />
+              <label
+                for="oculto-check"
+                style="
+                  margin: 0;
+                  cursor: pointer;
+                  color: #c084fc;
+                  font-weight: bold;
+                  font-size: 13px;
+                "
+              >
+                🔒 Rolar Oculto
+              </label>
+            </div>
+            <button
+              class="btn-gm btn-subtle"
+              onclick="liberarMestre()"
+              style="font-size: 11px; padding: 4px 8px; width: auto"
+            >
+              Liberar Posto Mestre
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -231,28 +422,50 @@
       const socket = io();
       let currentUsername = "";
       let currentRoom = "";
+      let isGM = false;
 
-      function entrarNaMesa() {
+      // TENTA AUTO-RECONECTAR AO ABRIR / RECARREGAR (F5)
+      window.onload = function () {
+        const savedUser = localStorage.getItem("rpg_username");
+        const savedRoom = localStorage.getItem("rpg_room");
+        const savedGM = localStorage.getItem("rpg_is_gm") === "true";
+
+        if (savedUser) document.getElementById("username").value = savedUser;
+        if (savedRoom) document.getElementById("room").value = savedRoom;
+        if (savedGM) document.getElementById("enter-as-gm").checked = savedGM;
+
+        if (savedUser && savedRoom) {
+          entrarNaMesa(true);
+        }
+      };
+
+      function entrarNaMesa(isAuto = false) {
         const user = document.getElementById("username").value.trim();
         const room = document.getElementById("room").value.trim();
         const wantGM = document.getElementById("enter-as-gm").checked;
 
         if (!user || !room) {
-          alert("Por favor, preencha o seu nome e o nome da mesa!");
+          if (!isAuto) alert("Preencha o seu nome e o nome da mesa!");
           return;
         }
 
-        socket.emit("join_room", {
-          username: user,
-          room: room,
-          is_gm: wantGM,
-        });
+        // Salva na memória do navegador
+        localStorage.setItem("rpg_username", user);
+        localStorage.setItem("rpg_room", room);
+        localStorage.setItem("rpg_is_gm", wantGM);
+
+        socket.emit("join_room", { username: user, room: room, is_gm: wantGM });
+      }
+
+      function sairDaMesa() {
+        localStorage.removeItem("rpg_room");
+        localStorage.removeItem("rpg_is_gm");
+        location.reload();
       }
 
       function enviarRolagem() {
         const input = document.getElementById("command-input");
         const expressao = input.value.trim();
-
         const ocultoCheck = document.getElementById("oculto-check");
         const isOculto = ocultoCheck ? ocultoCheck.checked : false;
 
@@ -268,28 +481,109 @@
         input.value = "";
       }
 
-      // --- EVENTOS RECEBIDOS DO SERVIDOR ---
+      // AÇÕES DO MESTRE
+      function toggleCombate() {
+        socket.emit("update_combat_state", {
+          room: currentRoom,
+          username: currentUsername,
+          action: "toggle_combat",
+        });
+      }
 
+      function proximoTurno() {
+        socket.emit("update_combat_state", {
+          room: currentRoom,
+          username: currentUsername,
+          action: "next_turn",
+        });
+      }
+
+      function adicionarCombatente() {
+        const name = document.getElementById("npc-name").value.trim();
+        const init = document.getElementById("npc-init").value.trim();
+
+        if (!name) return;
+
+        socket.emit("update_combat_state", {
+          room: currentRoom,
+          username: currentUsername,
+          action: "add_combatant",
+          name: name,
+          init: init || 0,
+        });
+
+        document.getElementById("npc-name").value = "";
+        document.getElementById("npc-init").value = "";
+      }
+
+      function removerCombatente(index) {
+        socket.emit("update_combat_state", {
+          room: currentRoom,
+          username: currentUsername,
+          action: "remove_combatant",
+          index: index,
+        });
+      }
+
+      function liberarMestre() {
+        socket.emit("leave_gm", {
+          room: currentRoom,
+          username: currentUsername,
+        });
+      }
+
+      // EVENTOS DO SOCKET.IO
       socket.on("join_error", function (data) {
+        alert(data.msg);
+      });
+      socket.on("roll_error", function (data) {
         alert(data.msg);
       });
 
       socket.on("join_success", function (data) {
         currentUsername = data.username;
         currentRoom = data.room;
+        isGM = data.is_gm;
 
         document.getElementById("login-card").style.display = "none";
         document.getElementById("game-area").style.display = "block";
+        document.getElementById("btn-change-room").style.display =
+          "inline-block";
 
-        // Se for o Mestre, revela o botão de Rolar Oculto
-        if (data.is_gm) {
-          document.getElementById("gm-panel").style.display = "flex";
+        if (isGM) {
+          document.getElementById("gm-panel").style.display = "block";
+        } else {
+          document.getElementById("gm-panel").style.display = "none";
         }
+      });
+
+      socket.on("gm_status_changed", function (data) {
+        isGM = data.is_gm;
+        document.getElementById("gm-panel").style.display = "none";
+        localStorage.setItem("rpg_is_gm", false);
       });
 
       socket.on("system_message", function (data) {
         const log = document.getElementById("chat-log");
         log.innerHTML += `<div class="system-msg">${data.msg}</div>`;
+        log.scrollTop = log.scrollHeight;
+      });
+
+      // CARREGA TODO O HISTÓRICO APÓS F5
+      socket.on("load_history", function (historyList) {
+        const log = document.getElementById("chat-log");
+        log.innerHTML = "";
+        historyList.forEach((data) => {
+          const cardClass = data.is_oculto
+            ? "message-card oculto"
+            : "message-card";
+          log.innerHTML += `
+                <div class="${cardClass}">
+                    <div class="user-header">${data.username}</div>
+                    <div>${data.html}</div>
+                </div>
+            `;
+        });
         log.scrollTop = log.scrollHeight;
       });
 
@@ -299,15 +593,55 @@
           ? "message-card oculto"
           : "message-card";
 
-        const htmlMessage = `
+        log.innerHTML += `
             <div class="${cardClass}">
                 <div class="user-header">${data.username}</div>
                 <div>${data.html}</div>
             </div>
         `;
-
-        log.innerHTML += htmlMessage;
         log.scrollTop = log.scrollHeight;
+      });
+
+      // ATUALIZA FAIXA DE COMBATE
+      socket.on("update_combat", function (combat) {
+        const bar = document.getElementById("initiative-bar");
+        const chipsContainer = document.getElementById("turn-chips");
+        const statusText = document.getElementById("combat-status");
+        const btnToggle = document.getElementById("btn-toggle-combat");
+
+        if (combat.order.length > 0 || combat.active) {
+          bar.style.display = "block";
+        } else {
+          bar.style.display = "none";
+        }
+
+        if (combat.active) {
+          statusText.innerText = "EM COMBATE ⚔️";
+          statusText.style.color = "#22c55e";
+          if (btnToggle) btnToggle.innerText = "Encerrar Combate 🕊️";
+        } else {
+          statusText.innerText = "FORA DE COMBATE";
+          statusText.style.color = "#ef4444";
+          if (btnToggle) btnToggle.innerText = "Iniciar Combate ⚔️";
+        }
+
+        chipsContainer.innerHTML = "";
+
+        combat.order.forEach((c, idx) => {
+          const isActive = combat.active && idx === combat.turn_index;
+          const chipClass = isActive ? "turn-chip active" : "turn-chip";
+
+          let removeBtn = isGM
+            ? `<span onclick="removerCombatente(${idx})" style="cursor:pointer; color:#ef4444; margin-left:4px;">✕</span>`
+            : "";
+
+          chipsContainer.innerHTML += `
+                <div class="${chipClass}">
+                    <span>${c.name} (${c.init})</span>
+                    ${removeBtn}
+                </div>
+            `;
+        });
       });
     </script>
   </body>
