@@ -320,7 +320,7 @@
             >
           </div>
           <div id="turn-chips" class="turn-list">
-            <!-- Chips dinamicos aqui -->
+            <!-- Chips dinâmicos -->
           </div>
         </div>
 
@@ -424,7 +424,7 @@
       let currentRoom = "";
       let isGM = false;
 
-      // TENTA AUTO-RECONECTAR AO ABRIR / RECARREGAR (F5)
+      // AUTO-RECONECTA AO ABRIR OU DAR F5
       window.onload = function () {
         const savedUser = localStorage.getItem("rpg_username");
         const savedRoom = localStorage.getItem("rpg_room");
@@ -449,7 +449,6 @@
           return;
         }
 
-        // Salva na memória do navegador
         localStorage.setItem("rpg_username", user);
         localStorage.setItem("rpg_room", room);
         localStorage.setItem("rpg_is_gm", wantGM);
@@ -536,9 +535,6 @@
       socket.on("join_error", function (data) {
         alert(data.msg);
       });
-      socket.on("roll_error", function (data) {
-        alert(data.msg);
-      });
 
       socket.on("join_success", function (data) {
         currentUsername = data.username;
@@ -569,7 +565,7 @@
         log.scrollTop = log.scrollHeight;
       });
 
-      // CARREGA TODO O HISTÓRICO APÓS F5
+      // CARREGA HISTÓRICO APÓS F5
       socket.on("load_history", function (historyList) {
         const log = document.getElementById("chat-log");
         log.innerHTML = "";
@@ -602,7 +598,7 @@
         log.scrollTop = log.scrollHeight;
       });
 
-      // ATUALIZA FAIXA DE COMBATE
+      // ATUALIZA FAIXA VISUAL DA INICIATIVA
       socket.on("update_combat", function (combat) {
         const bar = document.getElementById("initiative-bar");
         const chipsContainer = document.getElementById("turn-chips");

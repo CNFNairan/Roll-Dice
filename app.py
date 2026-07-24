@@ -244,7 +244,6 @@ def handle_join(data):
     is_gm_assigned = False
 
     if want_gm:
-        # Se não há Mestre na mesa OU se quem está entrando tem o mesmo nome do Mestre registrado (reconexão pós F5)
         if current_gm is None or current_gm.lower() == username.lower():
             room_masters[room] = username
             is_gm_assigned = True
@@ -263,7 +262,7 @@ def handle_join(data):
         'room': room
     })
 
-    # RESTAURA HISTÓRICO DE ROLAGENS DO F5 (Apenas para este usuário que acabou de entrar)
+    # RESTAURA HISTÓRICO DE ROLAGENS (Pós-F5)
     history = get_history_data(room)
     filtered_history = []
     for item in history:
@@ -302,7 +301,7 @@ def handle_combat_update(data):
     current_gm = room_masters.get(room)
 
     if not current_gm or current_gm.lower() != username.lower():
-        return # Apenas o Mestre pode alterar a ordem de combate
+        return
 
     combat = get_combat_data(room)
     action = data.get('action')
@@ -322,7 +321,6 @@ def handle_combat_update(data):
                 'name': nome,
                 'init': init_val
             })
-            # Ordena automaticamente por maior iniciativa
             combat['order'].sort(key=lambda x: x['init'], reverse=True)
 
     elif action == 'remove_combatant':
@@ -354,21 +352,6 @@ def handle_roll(data):
 
     current_gm = room_masters.get(room)
     is_real_gm = (current_gm and current_gm.lower() == username.lower())
-    combat = get_combat_data(room)
-
-    # TRAVA DE TURNO: Se combate está ativo e NÃO é o Mestre rolando
-    if combat['active'] and not is_real_gm:
-        if not combat['order']:
-            emit('roll_error', {'msg': '🛑 O combate está ativo, mas a ordem de iniciativa está vazia!'})
-            return
-            
-        personagem_da_vez = combat['order'][combat['turn_index']]
-        
-        if username.lower() != personagem_da_vez['name'].lower():
-            emit('roll_error', {
-                'msg': f"🛑 Aguarde! Não é a sua vez. É o turno de <strong>{personagem_da_vez['name']}</strong>."
-            })
-            return
 
     if is_oculto and not is_real_gm:
         is_oculto = False
@@ -403,7 +386,6 @@ def handle_roll(data):
         history.append({'public': msg})
         emit('receive_roll', msg, room=room)
 
-    # Mantém apenas os últimos 50 dados rolando para não carregar demais a memória
     if len(history) > 50:
         history.pop(0)
 
