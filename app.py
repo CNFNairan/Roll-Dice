@@ -147,11 +147,32 @@ class DiceRoller:
                 
             last_end = end
             
-        math_expr += expression[last_end:]
-        visual_expr += expression[last_end:]
+        # --- LÓGICA DE EXTRAÇÃO DE COMENTÁRIO ---
+        tail = expression[last_end:]
+        math_tail = ""
+        comentario = ""
+
+        # Lê a sobra da expressão para identificar onde o comentário de texto começa
+        for i, char in enumerate(tail):
+            if char not in self.allowed_chars:
+                math_tail = tail[:i]
+                comentario_raw = tail[i:]
+                
+                # Joga operadores órfãos (+, -) que possam ter ficado no final para o comentário
+                while math_tail and math_tail[-1] in "+-*/(). ":
+                    comentario_raw = math_tail[-1] + comentario_raw
+                    math_tail = math_tail[:-1]
+                
+                comentario = comentario_raw.strip()
+                break
+        else:
+            math_tail = tail
+            
+        math_expr += math_tail
+        visual_expr += math_tail
         
         if not all(c in self.allowed_chars for c in math_expr.replace(' ', '')):
-            return "Erro de sintaxe", visual_expr
+            return "Erro de sintaxe", visual_expr, comentario
             
         try:
             safe_expr = math_expr.replace('/', '//')
@@ -161,7 +182,7 @@ class DiceRoller:
         except Exception:
             final_result = "Erro Matemático"
             
-        return final_result, visual_expr
+        return final_result, visual_expr, comentario
 
     def roll(self, text):
         if ('cara' in text.lower() or 'coroa' in text.lower()) and 'd2' in text.lower():
@@ -189,10 +210,17 @@ class DiceRoller:
             
             for sub_expr in sub_expressions:
                 if not sub_expr.strip(): continue
-                result, visual = self.parse_expression(sub_expr)
+                
+                # Agora o parse_expression retorna 3 valores (Resultado, Visual, Comentário)
+                result, visual, comentario = self.parse_expression(sub_expr)
                 
                 caixa_resultado = f"<span class='result-box' style='margin-right: 8px;'>{result}</span>"
-                line_results.append(f"{caixa_resultado} ⟵ {visual.strip()}")
+                
+                # Se tiver um comentário, aplica o visual desejado: 'investigação', 3 ⟵ [1] 1d6 + 2
+                if comentario:
+                    line_results.append(f"'{comentario}', {caixa_resultado} ⟵ {visual.strip()}")
+                else:
+                    line_results.append(f"{caixa_resultado} ⟵ {visual.strip()}")
 
                 if isinstance(result, (int, float)):
                     soma_total += result
