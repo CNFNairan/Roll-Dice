@@ -11,6 +11,10 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 room_masters = {}    # { "sala": "nome_do_mestre" }
 room_combats = {}    # { "sala": { "active": False, "turn_index": 0, "order": [...] } }
 room_histories = {}  # { "sala": [ { "public": ..., "gm_private": ... } ] }
+room_chat_locked = {} # NOVO: { "sala": True/False } para travar chat
+
+user_sessions = {}   # { sid: {"room": room, "username": username} }
+room_players = {}    # { "sala": { sid: {"username": username, "is_gm": bool} } }
 
 class DiceRoller:
     def __init__(self):
@@ -259,7 +263,8 @@ def handle_join(data):
     emit('join_success', {
         'is_gm': is_gm_assigned,
         'username': username,
-        'room': room
+        'room': room,
+        'chat_locked': room_chat_locked.get(room, False) # NOVO: Envia estado do chat
     })
 
     # RESTAURA HISTÓRICO DE ROLAGENS (Pós-F5)
@@ -281,6 +286,25 @@ def handle_join(data):
         'msg': f"🟢 <strong>{username}</strong> ({titulo}) entrou/reconectou na mesa!"
     }, room=room)
 
+    sid = request.sid
+    user_sessions[sid] = {'room': room, 'username': username}
+    if room not in room_players:
+        room_players[room] = {}
+    room_players[room][sid] = {'username': username, 'is_gm': is_gm_assigned}
+    emit('update_players', list(room_players[room].values()), room=room)
+
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    sid = request.sid
+    if sid in user_sessions:
+        room = user_sessions[sid]['room']
+        if room in room_players and sid in room_players[room]:
+            del room_players[room][sid]
+            emit('update_players', list(room_players[room].values()), room=room)
+        del user_sessions[sid]
+
+
 @socketio.on('leave_gm')
 def handle_leave_gm(data):
     room = data.get('room', '').strip().lower()
@@ -291,6 +315,42 @@ def handle_leave_gm(data):
         del room_masters[room]
         emit('system_message', {'msg': f'👑 O mestre <strong>{username}</strong> liberou o posto de Mestre da sala.'}, room=room)
         emit('gm_status_changed', {'is_gm': False})
+
+        for sid, p_data in room_players.get(room, {}).items():
+            if p_data['username'] == username:
+                p_data['is_gm'] = False
+        emit('update_players', list(room_players.get(room, {}).values()), room=room)
+
+# --- NOVOS EVENTOS DE CHAT (LIMPAR E TRAVAR) ---
+
+@socketio.on('clear_chat')
+def handle_clear_chat(data):
+    room = data.get('room', '').strip().lower()
+    username = data.get('username', '').strip()
+    current_gm = room_masters.get(room)
+
+    # Verifica se quem pediu foi realmente o mestre daquela sala
+    if current_gm and current_gm.lower() == username.lower():
+        room_histories[room] = [] # Limpa a memória
+        emit('chat_cleared', {'msg': '🗑️ O mestre limpou o histórico do chat.'}, room=room)
+
+@socketio.on('toggle_chat_lock')
+def handle_toggle_chat_lock(data):
+    room = data.get('room', '').strip().lower()
+    username = data.get('username', '').strip()
+    current_gm = room_masters.get(room)
+
+    # Verifica se quem pediu foi realmente o mestre
+    if current_gm and current_gm.lower() == username.lower():
+        current_state = room_chat_locked.get(room, False)
+        new_state = not current_state
+        room_chat_locked[room] = new_state
+        
+        status_str = "bloqueado 🔒" if new_state else "desbloqueado 🔓"
+        emit('chat_lock_updated', {
+            'locked': new_state, 
+            'msg': f'O chat foi {status_str} pelo mestre.'
+        }, room=room)
 
 # --- EVENTOS DE ORDEM DE AÇÃO (COMBATE) ---
 
@@ -352,6 +412,11 @@ def handle_roll(data):
 
     current_gm = room_masters.get(room)
     is_real_gm = (current_gm and current_gm.lower() == username.lower())
+
+    # NOVO: Bloqueia rolagem se o chat estiver travado e o usuário não for o Mestre
+    if room_chat_locked.get(room, False) and not is_real_gm:
+        emit('system_message', {'msg': '❌ O chat está bloqueado pelo mestre. Você não pode rolar agora.'}, room=request.sid)
+        return
 
     if is_oculto and not is_real_gm:
         is_oculto = False

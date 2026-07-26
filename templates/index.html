@@ -19,7 +19,7 @@
 
       .container {
         width: 100%;
-        max-width: 650px;
+        max-width: 3000px;
       }
 
       .header-top {
@@ -55,6 +55,8 @@
         padding: 20px;
         border-radius: 8px;
         border: 1px solid #333;
+        max-width: 650px;
+        margin: 0 auto;
       }
 
       .form-group {
@@ -80,6 +82,13 @@
         font-size: 16px;
       }
 
+      /* NOVO: Estilo para inputs desativados */
+      input:disabled,
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed !important;
+      }
+
       button {
         width: 100%;
         padding: 12px;
@@ -92,7 +101,7 @@
         cursor: pointer;
       }
 
-      button:hover {
+      button:hover:not(:disabled) {
         background: #16a34a;
       }
 
@@ -100,7 +109,69 @@
         display: none;
       }
 
-      /* FAIXA DA INICIATIVA (CARROSSEL MOBILE) */
+      #game-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+      }
+
+      #main-content {
+        flex: 1;
+        width: 100%;
+      }
+
+      #side-content {
+        flex: 1;
+        width: 100%;
+        background: #181818;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 15px;
+        box-sizing: border-box;
+      }
+
+      @media (min-width: 768px) {
+        #game-layout {
+          flex-direction: row;
+        }
+        #main-content {
+          flex: 2;
+        }
+        #side-content {
+          flex: 1;
+        }
+      }
+
+      .player-list-title {
+        color: #4ade80;
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-size: 16px;
+        text-align: center;
+        border-bottom: 1px solid #333;
+        padding-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .player-item {
+        padding: 8px 12px;
+        background: #242424;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+      }
+
+      .player-item.gm-highlight {
+        border-left: 4px solid #a855f7;
+        background: #281c30;
+        color: #c084fc;
+        font-weight: bold;
+      }
+
       #initiative-bar {
         background: #181818;
         border: 1px solid #333;
@@ -147,7 +218,6 @@
         box-shadow: 0 0 10px rgba(74, 222, 128, 0.4);
       }
 
-      /* LOG DE ROLAGENS */
       #chat-log {
         background: #181818;
         border: 1px solid #333;
@@ -211,7 +281,6 @@
         opacity: 0.5;
       }
 
-      /* PAINEL DO MESTRE */
       .gm-box {
         background: #221c28;
         border: 1px solid #a855f7;
@@ -247,7 +316,7 @@
         cursor: pointer;
       }
 
-      .btn-gm:hover {
+      .btn-gm:hover:not(:disabled) {
         background: #9333ea;
       }
       .btn-subtle {
@@ -255,7 +324,7 @@
         color: #aaa;
         font-weight: normal;
       }
-      .btn-subtle:hover {
+      .btn-subtle:hover:not(:disabled) {
         background: #444;
         color: #fff;
       }
@@ -311,108 +380,144 @@
 
       <!-- ÁREA DA MESA -->
       <div id="game-area">
-        <!-- FAIXA DA ORDEM DE INICIATIVA -->
-        <div id="initiative-bar">
-          <div class="bar-title">
-            <span>⚔️ Ordem de Ação</span>
-            <span id="combat-status" style="color: #ef4444"
-              >FORA DE COMBATE</span
-            >
-          </div>
-          <div id="turn-chips" class="turn-list">
-            <!-- Chips dinâmicos -->
-          </div>
-        </div>
+        <div id="game-layout">
+          <div id="main-content">
+            <div id="initiative-bar">
+              <div class="bar-title">
+                <span>⚔️ Ordem de Ação</span>
+                <span id="combat-status" style="color: #ef4444"
+                  >FORA DE COMBATE</span
+                >
+              </div>
+              <div id="turn-chips" class="turn-list">
+                <!-- Chips dinâmicos -->
+              </div>
+            </div>
 
-        <!-- CHAT / LOG DE ROLAGENS -->
-        <div id="chat-log"></div>
+            <!-- CHAT / LOG DE ROLAGENS -->
+            <div id="chat-log"></div>
 
-        <!-- INPUT DE ROLAGEM -->
-        <div style="display: flex; gap: 8px">
-          <input
-            type="text"
-            id="command-input"
-            placeholder="Ex: 1d20+5, 3#1d2 cara, r(15+20)*3"
-            onkeypress="if (event.key === 'Enter') enviarRolagem();"
-          />
-          <button onclick="enviarRolagem()" style="width: 100px">Rolar</button>
-        </div>
-
-        <!-- PAINEL EXCLUSIVO DO MESTRE -->
-        <div id="gm-panel" class="gm-box" style="display: none">
-          <div class="gm-title">👑 Painel de Gerenciamento do Mestre</div>
-
-          <div class="gm-actions">
-            <button
-              id="btn-toggle-combat"
-              class="btn-gm"
-              onclick="toggleCombate()"
-            >
-              Iniciar Combate ⚔️
-            </button>
-            <button class="btn-gm" onclick="proximoTurno()">
-              Próximo Turno ⏩
-            </button>
-          </div>
-
-          <div style="display: flex; gap: 6px; margin-bottom: 10px">
-            <input
-              type="text"
-              id="npc-name"
-              placeholder="Nome (Ex: Orc / Player)"
-              style="flex: 2"
-            />
-            <input
-              type="number"
-              id="npc-init"
-              placeholder="Iniciativa"
-              style="flex: 1"
-            />
-            <button
-              class="btn-gm"
-              onclick="adicionarCombatente()"
-              style="width: 70px"
-            >
-              + Add
-            </button>
-          </div>
-
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              background: #1a1520;
-              padding: 8px;
-              border-radius: 4px;
-            "
-          >
-            <div style="display: flex; align-items: center; gap: 8px">
+            <!-- INPUT DE ROLAGEM -->
+            <div style="display: flex; gap: 8px">
               <input
-                type="checkbox"
-                id="oculto-check"
-                style="width: auto; cursor: pointer"
+                type="text"
+                id="command-input"
+                placeholder="Ex: 1d20+5, 3#1d2 cara, r(15+20)*3"
+                onkeypress="if (event.key === 'Enter') enviarRolagem();"
               />
-              <label
-                for="oculto-check"
+              <!-- ADICIONADO ID AQUI PARA TRAVAR O BOTÃO -->
+              <button
+                id="btn-rolar"
+                onclick="enviarRolagem()"
+                style="width: 100px"
+              >
+                Rolar
+              </button>
+            </div>
+
+            <!-- PAINEL EXCLUSIVO DO MESTRE -->
+            <div id="gm-panel" class="gm-box" style="display: none">
+              <div class="gm-title">👑 Painel de Gerenciamento do Mestre</div>
+
+              <div class="gm-actions">
+                <button
+                  id="btn-toggle-combat"
+                  class="btn-gm"
+                  onclick="toggleCombate()"
+                >
+                  Iniciar Combate ⚔️
+                </button>
+                <button class="btn-gm" onclick="proximoTurno()">
+                  Próximo Turno ⏩
+                </button>
+              </div>
+
+              <div style="display: flex; gap: 6px; margin-bottom: 10px">
+                <input
+                  type="text"
+                  id="npc-name"
+                  placeholder="Nome (Ex: Orc / Player)"
+                  style="flex: 2"
+                />
+                <input
+                  type="number"
+                  id="npc-init"
+                  placeholder="Iniciativa"
+                  style="flex: 1"
+                />
+                <button
+                  class="btn-gm"
+                  onclick="adicionarCombatente()"
+                  style="width: 70px"
+                >
+                  + Add
+                </button>
+              </div>
+
+              <!-- NOVO: BOTOES DE CONTROLE DO CHAT -->
+              <div class="gm-actions" style="margin-bottom: 10px">
+                <button
+                  class="btn-gm"
+                  onclick="limparChat()"
+                  style="background: #ef4444"
+                >
+                  Limpar Chat 🗑️
+                </button>
+                <button
+                  id="btn-lock-chat"
+                  class="btn-gm"
+                  onclick="travarChat()"
+                  style="background: #f59e0b"
+                >
+                  Travar Chat 🔒
+                </button>
+              </div>
+
+              <div
                 style="
-                  margin: 0;
-                  cursor: pointer;
-                  color: #c084fc;
-                  font-weight: bold;
-                  font-size: 13px;
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  background: #1a1520;
+                  padding: 8px;
+                  border-radius: 4px;
                 "
               >
-                🔒 Rolar Oculto
-              </label>
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <input
+                    type="checkbox"
+                    id="oculto-check"
+                    style="width: auto; cursor: pointer"
+                  />
+                  <label
+                    for="oculto-check"
+                    style="
+                      margin: 0;
+                      cursor: pointer;
+                      color: #c084fc;
+                      font-weight: bold;
+                      font-size: 13px;
+                    "
+                  >
+                    🔒 Rolar Oculto
+                  </label>
+                </div>
+                <button
+                  class="btn-gm btn-subtle"
+                  onclick="liberarMestre()"
+                  style="font-size: 11px; padding: 4px 8px; width: auto"
+                >
+                  Liberar Posto Mestre
+                </button>
+              </div>
             </div>
-            <button
-              class="btn-gm btn-subtle"
-              onclick="liberarMestre()"
-              style="font-size: 11px; padding: 4px 8px; width: auto"
-            >
-              Liberar Posto Mestre
-            </button>
+          </div>
+
+          <div id="side-content">
+            <h3 class="player-list-title">👥 Jogadores na Mesa</h3>
+            <div id="player-list-container">
+              <!-- Será preenchido via JavaScript dinamicamente -->
+            </div>
           </div>
         </div>
       </div>
@@ -424,7 +529,6 @@
       let currentRoom = "";
       let isGM = false;
 
-      // AUTO-RECONECTA AO ABRIR OU DAR F5
       window.onload = function () {
         const savedUser = localStorage.getItem("rpg_username");
         const savedRoom = localStorage.getItem("rpg_room");
@@ -480,7 +584,55 @@
         input.value = "";
       }
 
-      // AÇÕES DO MESTRE
+      // NOVO: AÇÕES DE CHAT (MESTRE)
+      function limparChat() {
+        if (
+          confirm(
+            "Tem certeza que deseja apagar todo o histórico de rolagens da mesa?",
+          )
+        ) {
+          socket.emit("clear_chat", {
+            room: currentRoom,
+            username: currentUsername,
+          });
+        }
+      }
+
+      function travarChat() {
+        socket.emit("toggle_chat_lock", {
+          room: currentRoom,
+          username: currentUsername,
+        });
+      }
+
+      // NOVO: ATUALIZA UI DO INPUT DE ROLAGEM
+      function atualizarInterfaceChat(isLocked) {
+        const input = document.getElementById("command-input");
+        const btn = document.getElementById("btn-rolar");
+        const btnLock = document.getElementById("btn-lock-chat");
+
+        if (isLocked) {
+          if (btnLock) {
+            btnLock.innerHTML = "Destravar Chat 🔓";
+            btnLock.style.background = "#10b981"; // Verde
+          }
+          if (!isGM) {
+            input.disabled = true;
+            btn.disabled = true;
+            input.placeholder = "O mestre travou o chat...";
+          }
+        } else {
+          if (btnLock) {
+            btnLock.innerHTML = "Travar Chat 🔒";
+            btnLock.style.background = "#f59e0b"; // Laranja/Amarelo
+          }
+          input.disabled = false;
+          btn.disabled = false;
+          input.placeholder = "Ex: 1d20+5, 3#1d2 cara, r(15+20)*3";
+        }
+      }
+
+      // AÇÕES DO MESTRE (COMBATE)
       function toggleCombate() {
         socket.emit("update_combat_state", {
           room: currentRoom,
@@ -551,6 +703,9 @@
         } else {
           document.getElementById("gm-panel").style.display = "none";
         }
+
+        // NOVO: Atualiza a trava no momento que conecta
+        atualizarInterfaceChat(data.chat_locked);
       });
 
       socket.on("gm_status_changed", function (data) {
@@ -565,7 +720,44 @@
         log.scrollTop = log.scrollHeight;
       });
 
-      // CARREGA HISTÓRICO APÓS F5
+      // NOVO: Eventos de chat recebidos
+      socket.on("chat_cleared", function (data) {
+        const log = document.getElementById("chat-log");
+        log.innerHTML = `<div class="system-msg">${data.msg}</div>`;
+      });
+
+      socket.on("chat_lock_updated", function (data) {
+        atualizarInterfaceChat(data.locked);
+        const log = document.getElementById("chat-log");
+        log.innerHTML += `<div class="system-msg" style="color: #f59e0b;">${data.msg}</div>`;
+        log.scrollTop = log.scrollHeight;
+      });
+
+      socket.on("update_players", function (players) {
+        const container = document.getElementById("player-list-container");
+        container.innerHTML = "";
+
+        players.sort((a, b) => (b.is_gm === true) - (a.is_gm === true));
+
+        const uniquePlayers = [];
+        const seen = new Set();
+        for (const p of players) {
+          if (!seen.has(p.username)) {
+            seen.add(p.username);
+            uniquePlayers.push(p);
+          }
+        }
+
+        uniquePlayers.forEach((p) => {
+          const isMe = p.username === currentUsername ? " (Você)" : "";
+          if (p.is_gm) {
+            container.innerHTML += `<div class="player-item gm-highlight">👑 ${p.username}${isMe}</div>`;
+          } else {
+            container.innerHTML += `<div class="player-item">🎲 ${p.username}${isMe}</div>`;
+          }
+        });
+      });
+
       socket.on("load_history", function (historyList) {
         const log = document.getElementById("chat-log");
         log.innerHTML = "";
@@ -598,7 +790,6 @@
         log.scrollTop = log.scrollHeight;
       });
 
-      // ATUALIZA FAIXA VISUAL DA INICIATIVA
       socket.on("update_combat", function (combat) {
         const bar = document.getElementById("initiative-bar");
         const chipsContainer = document.getElementById("turn-chips");
