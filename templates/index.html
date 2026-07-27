@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mesa RPG Multiplayer</title>
+    <title>Paroroller RPG Multiplayer</title>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
       body {
@@ -43,6 +43,7 @@
         border-radius: 4px;
         cursor: pointer;
         font-size: 12px;
+        transition: all 0.2s ease;
       }
 
       .btn-exit:hover {
@@ -82,7 +83,6 @@
         font-size: 16px;
       }
 
-      /* NOVO: Estilo para inputs desativados */
       input:disabled,
       button:disabled {
         opacity: 0.5;
@@ -109,21 +109,111 @@
         display: none;
       }
 
-      #game-layout {
+      .app-shell {
+        display: none;
+        width: 100%;
+        min-height: calc(100vh - 140px);
+        background: #121212;
+        border: 1px solid #333;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .sidebar-nav {
+        width: 260px;
+        background: #171717;
+        border-right: 1px solid #333;
+        padding: 16px;
+        box-sizing: border-box;
         display: flex;
         flex-direction: column;
-        gap: 15px;
+        gap: 12px;
+        flex-shrink: 0;
+      }
+
+      .nav-btn {
         width: 100%;
+        padding: 12px;
+        background: #222;
+        border: 1px solid #444;
+        border-radius: 8px;
+        color: #aaa;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .nav-btn.active {
+        background: #3b82f6;
+        color: #fff;
+        border-color: #3b82f6;
+      }
+
+      .sidebar-card {
+        background: #1f1f1f;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      .sidebar-title {
+        color: #3b82f6;
+        font-size: 15px;
+        font-weight: bold;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .sidebar-player-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .main-content {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .page-panel {
+        display: none;
+        width: 100%;
+        height: 100%;
+        padding: 16px;
+        box-sizing: border-box;
+      }
+
+      .page-panel.active {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .page-inner {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        height: 100%;
+      }
+
+      .mesa-grid {
+        display: flex;
+        gap: 16px;
+        flex: 1;
+        min-height: 0;
       }
 
       #main-content {
-        flex: 1;
-        width: 100%;
+        flex: 2;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
       }
 
       #side-content {
         flex: 1;
-        width: 100%;
+        max-width: 320px;
         background: #181818;
         border: 1px solid #333;
         border-radius: 8px;
@@ -131,15 +221,102 @@
         box-sizing: border-box;
       }
 
-      @media (min-width: 768px) {
-        #game-layout {
-          flex-direction: row;
+      #chat-log {
+        background: #181818;
+        border: 1px solid #333;
+        border-radius: 8px;
+        min-height: 320px;
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+        margin-bottom: 15px;
+      }
+
+      #text-chat-log {
+        flex: 1;
+        min-height: 280px;
+        background: #121212;
+        border: 1px solid #222;
+        border-radius: 6px;
+        padding: 10px;
+        overflow-y: auto;
+        margin-bottom: 10px;
+      }
+
+      .chat-shell {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        height: 100%;
+      }
+
+      .chat-input-row {
+        display: flex;
+        gap: 8px;
+      }
+
+      .chat-input-row input {
+        flex: 1;
+      }
+
+      .text-message-card {
+        background: #242424;
+        border-left: 4px solid #3b82f6;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        word-break: break-word;
+      }
+      .text-message-card .user-header {
+        color: #3b82f6;
+      }
+
+      /* LAYOUT DA MESA JÁ EXISTENTE */
+      #game-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+        height: 100%;
+      }
+
+      @media (max-width: 900px) {
+        .app-shell {
+          flex-direction: column;
+          min-height: auto;
         }
-        #main-content {
-          flex: 2;
+        .sidebar-nav {
+          width: 100%;
+          border-right: none;
+          border-bottom: 1px solid #333;
+          flex-direction: row;
+          flex-wrap: wrap;
+        }
+        .sidebar-nav .nav-btn {
+          flex: 1 1 140px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .mesa-grid {
+          flex-direction: column;
         }
         #side-content {
-          flex: 1;
+          max-width: none;
+          width: 100%;
+        }
+        .gm-actions {
+          flex-direction: column;
+        }
+        .btn-gm {
+          min-width: 0;
+          width: 100%;
+        }
+        .chat-input-row {
+          flex-direction: column;
+        }
+        .chat-input-row button {
+          width: 100%;
         }
       }
 
@@ -333,15 +510,17 @@
   <body>
     <div class="container">
       <div class="header-top">
-        <h1>⚔️ Mesa RPG</h1>
-        <button
-          id="btn-change-room"
-          class="btn-exit"
-          style="display: none"
-          onclick="sairDaMesa()"
-        >
-          Trocar de Mesa
-        </button>
+        <h1>⚔️ PAROROLLER</h1>
+        <div style="display: flex; gap: 8px; align-items: center">
+          <button
+            id="btn-change-room"
+            class="btn-exit"
+            style="display: none"
+            onclick="sairDaMesa()"
+          >
+            Trocar de Mesa
+          </button>
+        </div>
       </div>
 
       <!-- TELA DE LOGIN -->
@@ -378,156 +557,196 @@
         <button onclick="entrarNaMesa()">Entrar na Mesa</button>
       </div>
 
-      <!-- ÁREA DA MESA -->
-      <div id="game-area">
-        <div id="game-layout">
-          <div id="main-content">
-            <div id="initiative-bar">
-              <div class="bar-title">
-                <span>⚔️ Ordem de Ação</span>
-                <span id="combat-status" style="color: #ef4444"
-                  >FORA DE COMBATE</span
-                >
-              </div>
-              <div id="turn-chips" class="turn-list">
-                <!-- Chips dinâmicos -->
+      <div id="app-shell" class="app-shell">
+        <aside class="sidebar-nav">
+          <div class="sidebar-title">Navegação</div>
+          <button class="nav-btn active" data-page="mesa" onclick="showPage('mesa')">
+            📊 Mesa
+          </button>
+          <button class="nav-btn" data-page="conversa" onclick="showPage('conversa')">
+            💬 Conversa
+          </button>
+
+          <div class="sidebar-card">
+            <div class="sidebar-title">Sala: <strong id="sidebar-room-name">-</strong></div>
+            <div style="color: #aaa; font-size: 14px; line-height: 1.5;">
+              Usuário: <strong id="sidebar-user-name">-</strong><br />
+              Status: <span id="combat-status" style="color: #ef4444">FORA DE COMBATE</span>
+            </div>
+          </div>
+
+          <div class="sidebar-card">
+            <div class="sidebar-title">Jogadores</div>
+            <div id="sidebar-player-list" class="sidebar-player-list"></div>
+          </div>
+        </aside>
+
+        <main class="main-content">
+          <section id="page-mesa" class="page-panel active">
+            <div class="page-inner">
+              <div class="mesa-grid">
+                <div id="main-content">
+                  <div id="initiative-bar">
+                    <div class="bar-title">
+                      <span>⚔️ Ordem de Ação</span>
+                      <span id="combat-status" style="color: #ef4444"
+                        >FORA DE COMBATE</span
+                      >
+                    </div>
+                    <div id="turn-chips" class="turn-list">
+                      <!-- Chips dinâmicos -->
+                    </div>
+                  </div>
+
+                  <div id="chat-log"></div>
+
+                  <div style="display: flex; gap: 8px">
+                    <input
+                      type="text"
+                      id="command-input"
+                      placeholder="Ex: 1d20+5 (Rolagem) ou 'Olá grupo!' (Chat)"
+                      onkeypress="if (event.key === 'Enter') enviarRolagem();"
+                    />
+                    <button
+                      id="btn-rolar"
+                      onclick="enviarRolagem()"
+                      style="width: 100px"
+                    >
+                      Rolar
+                    </button>
+                  </div>
+
+                  <div id="gm-panel" class="gm-box" style="display: none">
+                    <div class="gm-title">
+                      👑 Painel de Gerenciamento do Mestre
+                    </div>
+
+                    <div class="gm-actions">
+                      <button
+                        id="btn-toggle-combat"
+                        class="btn-gm"
+                        onclick="toggleCombate()"
+                      >
+                        Iniciar Combate ⚔️
+                      </button>
+                      <button class="btn-gm" onclick="proximoTurno()">
+                        Próximo Turno ⏩
+                      </button>
+                    </div>
+
+                    <div style="display: flex; gap: 6px; margin-bottom: 10px">
+                      <input
+                        type="text"
+                        id="npc-name"
+                        placeholder="Nome (Ex: Orc)"
+                        style="flex: 2"
+                      />
+                      <input
+                        type="number"
+                        id="npc-init"
+                        placeholder="Iniciativa"
+                        style="flex: 1"
+                      />
+                      <button
+                        class="btn-gm"
+                        onclick="adicionarCombatente()"
+                        style="width: 70px"
+                      >
+                        + Add
+                      </button>
+                    </div>
+
+                    <div class="gm-actions" style="margin-bottom: 10px">
+                      <button
+                        class="btn-gm"
+                        onclick="limparChat()"
+                        style="background: #ef4444"
+                      >
+                        Limpar Logs 🗑️
+                      </button>
+                      <button
+                        id="btn-lock-chat"
+                        class="btn-gm"
+                        onclick="travarChat()"
+                        style="background: #f59e0b"
+                      >
+                        Travar Logs 🔒
+                      </button>
+                    </div>
+
+                    <div
+                      style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        background: #1a1520;
+                        padding: 8px;
+                        border-radius: 4px;
+                      "
+                    >
+                      <div style="display: flex; align-items: center; gap: 8px">
+                        <input
+                          type="checkbox"
+                          id="oculto-check"
+                          style="width: auto; cursor: pointer"
+                        />
+                        <label
+                          for="oculto-check"
+                          style="
+                            margin: 0;
+                            cursor: pointer;
+                            color: #c084fc;
+                            font-weight: bold;
+                            font-size: 13px;
+                          "
+                        >
+                          🔒 Rolar Oculto
+                        </label>
+                      </div>
+                      <button
+                        class="btn-gm btn-subtle"
+                        onclick="liberarMestre()"
+                        style="font-size: 11px; padding: 4px 8px; width: auto"
+                      >
+                        Liberar Posto Mestre
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
+          </section>
 
-            <!-- CHAT / LOG DE ROLAGENS -->
-            <div id="chat-log"></div>
-
-            <!-- INPUT DE ROLAGEM -->
-            <div style="display: flex; gap: 8px">
-              <input
-                type="text"
-                id="command-input"
-                placeholder="Ex: 1d20+5, 3#1d2 cara, r(15+20)*3"
-                onkeypress="if (event.key === 'Enter') enviarRolagem();"
-              />
-              <!-- ADICIONADO ID AQUI PARA TRAVAR O BOTÃO -->
-              <button
-                id="btn-rolar"
-                onclick="enviarRolagem()"
-                style="width: 100px"
-              >
-                Rolar
-              </button>
-            </div>
-
-            <!-- PAINEL EXCLUSIVO DO MESTRE -->
-            <div id="gm-panel" class="gm-box" style="display: none">
-              <div class="gm-title">👑 Painel de Gerenciamento do Mestre</div>
-
-              <div class="gm-actions">
-                <button
-                  id="btn-toggle-combat"
-                  class="btn-gm"
-                  onclick="toggleCombate()"
-                >
-                  Iniciar Combate ⚔️
-                </button>
-                <button class="btn-gm" onclick="proximoTurno()">
-                  Próximo Turno ⏩
-                </button>
-              </div>
-
-              <div style="display: flex; gap: 6px; margin-bottom: 10px">
+          <section id="page-conversa" class="page-panel">
+            <div class="chat-shell">
+              <div class="sidebar-title">💬 Conversa</div>
+              <div id="text-chat-log"></div>
+              <div class="chat-input-row">
                 <input
                   type="text"
-                  id="npc-name"
-                  placeholder="Nome (Ex: Orc / Player)"
-                  style="flex: 2"
-                />
-                <input
-                  type="number"
-                  id="npc-init"
-                  placeholder="Iniciativa"
-                  style="flex: 1"
+                  id="chat-input"
+                  placeholder="Digite a mensagem..."
+                  onkeypress="if (event.key === 'Enter') enviarMensagemDiretaChat();"
                 />
                 <button
-                  class="btn-gm"
-                  onclick="adicionarCombatente()"
-                  style="width: 70px"
+                  onclick="enviarMensagemDiretaChat()"
+                  style="width: 90px; background: #3b82f6; color: white"
                 >
-                  + Add
-                </button>
-              </div>
-
-              <!-- NOVO: BOTOES DE CONTROLE DO CHAT -->
-              <div class="gm-actions" style="margin-bottom: 10px">
-                <button
-                  class="btn-gm"
-                  onclick="limparChat()"
-                  style="background: #ef4444"
-                >
-                  Limpar Chat 🗑️
-                </button>
-                <button
-                  id="btn-lock-chat"
-                  class="btn-gm"
-                  onclick="travarChat()"
-                  style="background: #f59e0b"
-                >
-                  Travar Chat 🔒
-                </button>
-              </div>
-
-              <div
-                style="
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-                  background: #1a1520;
-                  padding: 8px;
-                  border-radius: 4px;
-                "
-              >
-                <div style="display: flex; align-items: center; gap: 8px">
-                  <input
-                    type="checkbox"
-                    id="oculto-check"
-                    style="width: auto; cursor: pointer"
-                  />
-                  <label
-                    for="oculto-check"
-                    style="
-                      margin: 0;
-                      cursor: pointer;
-                      color: #c084fc;
-                      font-weight: bold;
-                      font-size: 13px;
-                    "
-                  >
-                    🔒 Rolar Oculto
-                  </label>
-                </div>
-                <button
-                  class="btn-gm btn-subtle"
-                  onclick="liberarMestre()"
-                  style="font-size: 11px; padding: 4px 8px; width: auto"
-                >
-                  Liberar Posto Mestre
+                  Enviar
                 </button>
               </div>
             </div>
-          </div>
-
-          <div id="side-content">
-            <h3 class="player-list-title">👥 Jogadores na Mesa</h3>
-            <div id="player-list-container">
-              <!-- Será preenchido via JavaScript dinamicamente -->
-            </div>
-          </div>
-        </div>
+          </section>
+        </main>
       </div>
-    </div>
 
     <script>
       const socket = io();
       let currentUsername = "";
       let currentRoom = "";
       let isGM = false;
+      let currentPage = "mesa";
 
       window.onload = function () {
         const savedUser = localStorage.getItem("rpg_username");
@@ -566,6 +785,18 @@
         location.reload();
       }
 
+      function showPage(pageName) {
+        currentPage = pageName === "conversa" ? "conversa" : "mesa";
+
+        document.querySelectorAll(".nav-btn").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.page === currentPage);
+        });
+
+        document.getElementById("page-mesa").classList.toggle("active", currentPage === "mesa");
+        document.getElementById("page-conversa").classList.toggle("active", currentPage === "conversa");
+      }
+
+      /* ATUALIZADO: Filtro Inteligente de Rolagem vs Chat */
       function enviarRolagem() {
         const input = document.getElementById("command-input");
         const expressao = input.value.trim();
@@ -574,17 +805,47 @@
 
         if (!expressao) return;
 
-        socket.emit("send_roll", {
+        // Verifica se é rolagem usando Regex: Contém "d20", "r(", "#" ou equações matemáticas
+        const regexRolagem = /(^|\s|\b)(\d*d\d+|r\(|#)/i;
+        const regexMatematica = /^[0-9+\-*/(). ]+$/;
+
+        if (regexRolagem.test(expressao) || regexMatematica.test(expressao)) {
+          // É uma rolagem de dados ou cálculo
+          socket.emit("send_roll", {
+            room: currentRoom,
+            username: currentUsername,
+            expressao: expressao,
+            is_oculto: isOculto,
+          });
+        } else {
+          // É um texto sem dados: Redireciona para o Chat
+          socket.emit("send_text_chat", {
+            room: currentRoom,
+            username: currentUsername,
+            message: expressao,
+          });
+
+          showPage("conversa");
+        }
+
+        input.value = "";
+      }
+
+      /* NOVO: Enviar mensagem direto pelo input da Sidebar */
+      function enviarMensagemDiretaChat() {
+        const input = document.getElementById("chat-input");
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        socket.emit("send_text_chat", {
           room: currentRoom,
           username: currentUsername,
-          expressao: expressao,
-          is_oculto: isOculto,
+          message: msg,
         });
 
         input.value = "";
       }
 
-      // NOVO: AÇÕES DE CHAT (MESTRE)
       function limparChat() {
         if (
           confirm(
@@ -605,7 +866,6 @@
         });
       }
 
-      // NOVO: ATUALIZA UI DO INPUT DE ROLAGEM
       function atualizarInterfaceChat(isLocked) {
         const input = document.getElementById("command-input");
         const btn = document.getElementById("btn-rolar");
@@ -613,26 +873,25 @@
 
         if (isLocked) {
           if (btnLock) {
-            btnLock.innerHTML = "Destravar Chat 🔓";
-            btnLock.style.background = "#10b981"; // Verde
+            btnLock.innerHTML = "Destravar Logs 🔓";
+            btnLock.style.background = "#10b981";
           }
           if (!isGM) {
             input.disabled = true;
             btn.disabled = true;
-            input.placeholder = "O mestre travou o chat...";
+            input.placeholder = "O mestre travou as rolagens...";
           }
         } else {
           if (btnLock) {
-            btnLock.innerHTML = "Travar Chat 🔒";
-            btnLock.style.background = "#f59e0b"; // Laranja/Amarelo
+            btnLock.innerHTML = "Travar Logs 🔒";
+            btnLock.style.background = "#f59e0b";
           }
           input.disabled = false;
           btn.disabled = false;
-          input.placeholder = "Ex: 1d20+5, 3#1d2 cara, r(15+20)*3";
+          input.placeholder = "Ex: 1d20+5 (Rolagem) ou 'Olá grupo!' (Chat)";
         }
       }
 
-      // AÇÕES DO MESTRE (COMBATE)
       function toggleCombate() {
         socket.emit("update_combat_state", {
           room: currentRoom,
@@ -652,9 +911,7 @@
       function adicionarCombatente() {
         const name = document.getElementById("npc-name").value.trim();
         const init = document.getElementById("npc-init").value.trim();
-
         if (!name) return;
-
         socket.emit("update_combat_state", {
           room: currentRoom,
           username: currentUsername,
@@ -662,7 +919,6 @@
           name: name,
           init: init || 0,
         });
-
         document.getElementById("npc-name").value = "";
         document.getElementById("npc-init").value = "";
       }
@@ -683,7 +939,7 @@
         });
       }
 
-      // EVENTOS DO SOCKET.IO
+      // SOCKET EVENTS
       socket.on("join_error", function (data) {
         alert(data.msg);
       });
@@ -694,7 +950,7 @@
         isGM = data.is_gm;
 
         document.getElementById("login-card").style.display = "none";
-        document.getElementById("game-area").style.display = "block";
+        document.getElementById("app-shell").style.display = "flex";
         document.getElementById("btn-change-room").style.display =
           "inline-block";
 
@@ -703,8 +959,9 @@
         } else {
           document.getElementById("gm-panel").style.display = "none";
         }
-
-        // NOVO: Atualiza a trava no momento que conecta
+        document.getElementById("sidebar-room-name").textContent = data.room;
+        document.getElementById("sidebar-user-name").textContent = data.username;
+        showPage("mesa");
         atualizarInterfaceChat(data.chat_locked);
       });
 
@@ -720,10 +977,13 @@
         log.scrollTop = log.scrollHeight;
       });
 
-      // NOVO: Eventos de chat recebidos
       socket.on("chat_cleared", function (data) {
         const log = document.getElementById("chat-log");
+        const textLog = document.getElementById("text-chat-log");
         log.innerHTML = `<div class="system-msg">${data.msg}</div>`;
+        if (textLog) {
+          textLog.innerHTML = "";
+        }
       });
 
       socket.on("chat_lock_updated", function (data) {
@@ -734,8 +994,10 @@
       });
 
       socket.on("update_players", function (players) {
-        const container = document.getElementById("player-list-container");
-        container.innerHTML = "";
+        const containers = [
+          document.getElementById("player-list-container"),
+          document.getElementById("sidebar-player-list"),
+        ];
 
         players.sort((a, b) => (b.is_gm === true) - (a.is_gm === true));
 
@@ -748,16 +1010,21 @@
           }
         }
 
-        uniquePlayers.forEach((p) => {
-          const isMe = p.username === currentUsername ? " (Você)" : "";
-          if (p.is_gm) {
-            container.innerHTML += `<div class="player-item gm-highlight">👑 ${p.username}${isMe}</div>`;
-          } else {
-            container.innerHTML += `<div class="player-item">🎲 ${p.username}${isMe}</div>`;
-          }
+        containers.forEach((container) => {
+          if (!container) return;
+          container.innerHTML = "";
+          uniquePlayers.forEach((p) => {
+            const isMe = p.username === currentUsername ? " (Você)" : "";
+            if (p.is_gm) {
+              container.innerHTML += `<div class="player-item gm-highlight">👑 ${p.username}${isMe}</div>`;
+            } else {
+              container.innerHTML += `<div class="player-item">🎲 ${p.username}${isMe}</div>`;
+            }
+          });
         });
       });
 
+      /* ROLAGENS (DADOS) */
       socket.on("load_history", function (historyList) {
         const log = document.getElementById("chat-log");
         log.innerHTML = "";
@@ -780,12 +1047,37 @@
         const cardClass = data.is_oculto
           ? "message-card oculto"
           : "message-card";
-
         log.innerHTML += `
             <div class="${cardClass}">
                 <div class="user-header">${data.username}</div>
                 <div>${data.html}</div>
             </div>
+        `;
+        log.scrollTop = log.scrollHeight;
+      });
+
+      /* NOVO: EVENTOS DO CHAT DE TEXTO */
+      socket.on("load_chat_history", function (chatHistory) {
+        const log = document.getElementById("text-chat-log");
+        log.innerHTML = "";
+        chatHistory.forEach((data) => {
+          log.innerHTML += `
+            <div class="text-message-card">
+              <div class="user-header">${data.username}</div>
+              <div style="font-size: 14px; word-wrap: break-word; line-height: 1.4;">${data.message}</div>
+            </div>
+          `;
+        });
+        log.scrollTop = log.scrollHeight;
+      });
+
+      socket.on("receive_text_chat", function (data) {
+        const log = document.getElementById("text-chat-log");
+        log.innerHTML += `
+          <div class="text-message-card">
+            <div class="user-header">${data.username}</div>
+            <div style="font-size: 14px; word-wrap: break-word; line-height: 1.4;">${data.message}</div>
+          </div>
         `;
         log.scrollTop = log.scrollHeight;
       });
@@ -813,15 +1105,12 @@
         }
 
         chipsContainer.innerHTML = "";
-
         combat.order.forEach((c, idx) => {
           const isActive = combat.active && idx === combat.turn_index;
           const chipClass = isActive ? "turn-chip active" : "turn-chip";
-
           let removeBtn = isGM
             ? `<span onclick="removerCombatente(${idx})" style="cursor:pointer; color:#ef4444; margin-left:4px;">✕</span>`
             : "";
-
           chipsContainer.innerHTML += `
                 <div class="${chipClass}">
                     <span>${c.name} (${c.init})</span>

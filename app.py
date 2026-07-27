@@ -12,6 +12,7 @@ room_masters = {}    # { "sala": "nome_do_mestre" }
 room_combats = {}    # { "sala": { "active": False, "turn_index": 0, "order": [...] } }
 room_histories = {}  # { "sala": [ { "public": ..., "gm_private": ... } ] }
 room_chat_locked = {} # NOVO: { "sala": True/False } para travar chat
+room_text_chats = {}  # { "sala": [ { "username": ..., "message": ... } ] }
 
 user_sessions = {}   # { sid: {"room": room, "username": username} }
 room_players = {}    # { "sala": { sid: {"username": username, "is_gm": bool} } }
@@ -263,6 +264,12 @@ def get_history_data(room):
         room_histories[room] = []
     return room_histories[room]
 
+
+def get_chat_history_data(room):
+    if room not in room_text_chats:
+        room_text_chats[room] = []
+    return room_text_chats[room]
+
 # --- EVENTOS DE CONEXÃO & HISTÓRICO ---
 
 @socketio.on('join_room')
@@ -308,6 +315,9 @@ def handle_join(data):
             
     emit('load_history', filtered_history)
 
+    # RESTAURA HISTÓRICO DE CONVERSA
+    emit('load_chat_history', get_chat_history_data(room))
+
     # RESTAURA ESTADO DE COMBATE
     emit('update_combat', get_combat_data(room))
 
@@ -351,6 +361,31 @@ def handle_leave_gm(data):
                 p_data['is_gm'] = False
         emit('update_players', list(room_players.get(room, {}).values()), room=room)
 
+@socketio.on('leave_room')
+def handle_leave_room(data):
+    room = data.get('room', '').strip().lower()
+    username = data.get('username', '').strip()
+    sid = request.sid
+
+    if not room or not username:
+        return
+
+    session = user_sessions.get(sid)
+    if not session or session.get('room', '').lower() != room:
+        return
+
+    leave_room(room)
+    emit('system_message', {'msg': f'🚪 <strong>{username}</strong> saiu da sala atual.'}, room=room)
+
+    if room in room_players and sid in room_players[room]:
+        del room_players[room][sid]
+        if not room_players[room]:
+            del room_players[room]
+        emit('update_players', list(room_players.get(room, {}).values()), room=room)
+
+    if sid in user_sessions:
+        del user_sessions[sid]
+
 # --- NOVOS EVENTOS DE CHAT (LIMPAR E TRAVAR) ---
 
 @socketio.on('clear_chat')
@@ -361,7 +396,8 @@ def handle_clear_chat(data):
 
     # Verifica se quem pediu foi realmente o mestre daquela sala
     if current_gm and current_gm.lower() == username.lower():
-        room_histories[room] = [] # Limpa a memória
+        room_histories[room] = []
+        room_text_chats[room] = []
         emit('chat_cleared', {'msg': '🗑️ O mestre limpou o histórico do chat.'}, room=room)
 
 @socketio.on('toggle_chat_lock')
@@ -381,6 +417,30 @@ def handle_toggle_chat_lock(data):
             'locked': new_state, 
             'msg': f'O chat foi {status_str} pelo mestre.'
         }, room=room)
+
+@socketio.on('send_text_chat')
+def handle_send_text_chat(data):
+    room = data.get('room', '').strip().lower()
+    username = data.get('username', 'Anônimo').strip()
+    message = data.get('message', '').strip()
+
+    if not room or not message:
+        return
+
+    current_gm = room_masters.get(room)
+    is_real_gm = (current_gm and current_gm.lower() == username.lower())
+
+    if room_chat_locked.get(room, False) and not is_real_gm:
+        emit('system_message', {'msg': '❌ O chat está bloqueado pelo mestre. Você não pode enviar mensagens agora.'}, room=request.sid)
+        return
+
+    history = get_chat_history_data(room)
+    history.append({'username': username, 'message': message})
+
+    if len(history) > 100:
+        history.pop(0)
+
+    emit('receive_text_chat', {'username': username, 'message': message}, room=room)
 
 # --- EVENTOS DE ORDEM DE AÇÃO (COMBATE) ---
 
