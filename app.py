@@ -140,8 +140,9 @@ class DiceRoller:
             
             math_expr += str(unit_final)
             
+            # AQUI ESTAVA O PROBLEMA: Usamos o fmt_rolls[0] para pegar a classe CSS no d20 unico!
             if n == 1:
-                visual_expr += f"[{unit_final}] {raw_text}"
+                visual_expr += f"[{fmt_rolls[0]}] {raw_text}"
             else:
                 visual_expr += f"[{unit_final}] = {rolls_str} {raw_text}"
                 
@@ -231,13 +232,14 @@ class DiceRoller:
             output.append(f"<div style='display: block; margin-bottom: 10px;'>{linha_montada}</div>")
             
         if repeticoes > 1 and not teve_erro:
+            # AQUI ESTÁ A ALTERAÇÃO DO BOTAO SOMA: Retirado o negrito verde, deixado branco padrão
             botao_soma = f"""
             <details style="margin-top: 5px; cursor: pointer; background: #1e1e1e; padding: 10px; border-radius: 6px; border: 1px solid #444; width: fit-content;">
-                <summary style="color: #4ade80; font-weight: bold; outline: none; user-select: none;">
+                <summary style="color: #fff; outline: none; user-select: none;">
                     Somar as {repeticoes} rolagens
                 </summary>
                 <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #444; font-size: 16px;">
-                    Soma Total: <span class='result-box' style='background-color: #22c55e; color: #000;'>{soma_total}</span>
+                    Soma Total: <span class='result-box' style='color: #fff;'>{soma_total}</span>
                 </div>
             </details>
             """
